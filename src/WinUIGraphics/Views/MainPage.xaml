@@ -29,6 +29,9 @@
                 Draw="canvas_Draw"
                 KeyDown="canvas_KeyDown"
                 KeyUp="canvas_KeyUp"
+                PointerPressed="canvas_PointerPressed"
+                PointerReleased="canvas_PointerReleased"
+                PointerMoved="canvas_PointerMoved"
                 CharacterReceived="canvas_CharacterReceived"
                 ClearColor="Transparent" />
         </Grid>

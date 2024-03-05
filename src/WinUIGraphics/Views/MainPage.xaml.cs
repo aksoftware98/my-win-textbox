@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Windows.UI.Core;
 using WinUIGraphics.ViewModels;
 using Windows.Globalization;
+using Windows.Foundation;
 
 namespace WinUIGraphics.Views;
 
@@ -25,11 +26,12 @@ public sealed partial class MainPage : Page
 
     }
 
-    private StringBuilder _text = new StringBuilder();
+    private readonly StringBuilder _text = new();
+    private string? _selectedText = null;
     private int _lastSpace = 0;
     private int _cursorIndex = 0;
-
-    protected async override void OnNavigatedTo(NavigationEventArgs e)
+    private Rect _textRect = new Rect(5, 5, 0, 0);
+    protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         canvas.Focus(Microsoft.UI.Xaml.FocusState.Keyboard);
     }
@@ -48,6 +50,48 @@ public sealed partial class MainPage : Page
                 FontSize = 24,
                 TrimmingGranularity = CanvasTextTrimmingGranularity.None,
             }, (float)canvas.ActualWidth, (float)canvas.ActualHeight);
+
+            var metrics = layout.ClusterMetrics;
+
+            if (_isTextSelected)
+            {
+                var startingX = _selectionStartingPoint!.Value.X;
+
+                var widthToIgnore = 0f;
+                var charIndex = 0;
+
+                while (widthToIgnore < startingX)
+                {
+                    widthToIgnore += metrics[charIndex].Width;
+                    charIndex++;
+                }
+
+                var endingX = _selectionEndingPoint!.Value.X;
+                var lastCharIndex = charIndex;
+                var endingWidthToIgnore = widthToIgnore;
+                var rectWidth = 0f;
+                while (endingWidthToIgnore < endingX)
+                {
+                    endingWidthToIgnore += metrics[lastCharIndex].Width;
+                    rectWidth += metrics[lastCharIndex].Width;
+                    lastCharIndex++;
+                }
+
+                if (charIndex < lastCharIndex)
+                {
+                    _selectedText = _text.ToString().Substring(charIndex - 1, lastCharIndex - charIndex - 1);
+                    if (_selectedText.Length != 0)
+                    {
+                        var selectionRect = new Rect(widthToIgnore - 5, 5, rectWidth + 1, 29);
+                        args.DrawingSession.FillRectangle(selectionRect, Colors.Blue);
+                    }
+                }    
+                
+                
+
+            }
+
+            _textRect = layout.LayoutBoundsIncludingTrailingWhitespace;
 
             var lineLayout = new CanvasTextLayout(sender.Device, _text.ToString().Split('\n').Last()[0.._cursorIndex], new CanvasTextFormat()
             {
@@ -142,9 +186,53 @@ public sealed partial class MainPage : Page
     {
         var chars = args.Character.ToString();
         if (_addChar)
-        {
+        { 
             _text.Insert(_cursorIndex, chars);
             _cursorIndex++;
         }
+    }
+
+    private Point? _selectionStartingPoint = null;
+    private Point? _selectionEndingPoint = null;
+    private bool _isSelectionMode = false;
+    private bool _isTextSelected = false;
+
+    private void canvas_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(canvas);
+        var isLeftPressed = point.Properties.IsLeftButtonPressed;
+
+        if (isLeftPressed && IsPointWithinRect(point))
+        {
+            _isSelectionMode = true;
+            _selectionStartingPoint = point.Position;
+        }
+    }
+
+    private bool IsPointWithinRect(PointerPoint point)
+    {
+        return (point.Position.X > _textRect.X + 5 && point.Position.X < _textRect.Width + 5)
+                    && (point.Position.Y > _textRect.Y + 5 && point.Position.Y < _textRect.Height + 5);
+    }
+
+    private void canvas_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (_isSelectionMode && IsPointWithinRect(e.GetCurrentPoint(canvas)))
+        {
+            _isSelectionMode = false;
+            _selectionEndingPoint = e.GetCurrentPoint(canvas).Position;
+            _isTextSelected = true;
+        }
+        canvas.Invalidate();
+    }
+
+    private void canvas_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (_isSelectionMode && IsPointWithinRect(e.GetCurrentPoint(canvas)))
+        {
+            _selectionEndingPoint = e.GetCurrentPoint(canvas).Position;
+            _isTextSelected = true;
+        }
+        canvas.Invalidate();
     }
 }
