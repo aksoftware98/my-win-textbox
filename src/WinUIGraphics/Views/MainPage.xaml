@@ -1,0 +1,37 @@
+﻿<Page
+    x:Class="WinUIGraphics.Views.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:win2dcanvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+    mc:Ignorable="d">
+
+    <Grid x:Name="ContentArea">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock
+            Grid.Row="0"
+            x:Uid="Main_Title"
+            Style="{StaticResource PageTitleStyle}" />
+
+        <Grid Grid.Row="1">
+            <win2dcanvas:CanvasControl
+                AllowFocusOnInteraction="True"
+                x:Name="canvas"
+                TabNavigation="Cycle"
+                IsTabStop="True"
+                CreateResources="canvas_CreateResources"
+                Draw="canvas_Draw"
+                KeyDown="canvas_KeyDown"
+                KeyUp="canvas_KeyUp"
+                CharacterReceived="canvas_CharacterReceived"
+                ClearColor="Transparent" />
+        </Grid>
+        
+    </Grid>
+</Page>
